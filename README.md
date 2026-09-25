@@ -328,8 +328,8 @@ Make sure you have installed:
 ### Clone the repository
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
-cd CodeAlpha_EcommerceStore
+git clone https://github.com/aamirjailbreak-spoof/CodeAlpha_ProjectName-.git
+cd CodeAlpha_ProjectName-
 ```
 
 ### Install dependencies
