@@ -327,15 +327,18 @@ Authorization: Bearer <your_jwt_token>
 }
 ```
 
+### Cart Endpoints (Phase 6 ✅)
+All cart endpoints require authentication (`Authorization: Bearer <token>`).
+```text
+GET    /api/cart              - Retrieve authenticated user's cart with items and subtotal
+POST   /api/cart/items        - Add product to cart (body: { product_id, quantity })
+PUT    /api/cart/items/:id    - Update item quantity in cart (body: { quantity })
+DELETE /api/cart/items/:id    - Remove item from cart
+```
+
 ### Planned Future Endpoints
 ```text
-Cart (Phase 6)
-GET    /api/cart              - Retrieve user cart
-POST   /api/cart              - Add item to cart
-PUT    /api/cart/:itemId      - Update item quantity
-DELETE /api/cart/:itemId      - Remove item from cart
-
-Orders (Phase 6)
+Orders (Phase 7)
 POST   /api/orders            - Checkout / create order
 GET    /api/orders            - View order history
 GET    /api/orders/:id        - View order details
@@ -347,10 +350,11 @@ GET    /api/orders/:id        - View order details
 
 The application follows secure backend development practices:
 
+* **Authentication & User Isolation**: Cart operations are strictly scoped to the authenticated user ID extracted from verified JWT tokens. Users cannot access, modify, or delete another user's cart or cart items.
 * **Password Hashing**: Passwords hashed with `bcrypt` (10 salt rounds); plaintext passwords and `password_hash` are never stored plaintext or exposed in API responses.
 * **Token Authentication**: Signed JSON Web Tokens (`jsonwebtoken`) containing minimal payload (`{ userId }`) with expiration (`JWT_EXPIRES_IN`).
 * **Timing & Enumeration Defense**: Generic 401 error message ("Invalid email or password") used for both non-existent users and invalid passwords.
-* **Input Normalization & Validation**: Email addresses trimmed and lowercased; passwords constrained between 8 and 72 characters; names capped at 255 characters.
+* **Input Normalization & Validation**: Email addresses trimmed and lowercased; passwords constrained between 8 and 72 characters; names capped at 255 characters; numeric IDs and quantities strictly validated.
 * **SQL Injection Defense**: 100% parameterized PostgreSQL queries (`$1, $2, ...`) via `pg`.
 * **Centralized Error Handling**: Database errors, stack traces, and credentials are intercepted and sanitized before returning responses.
 * **DoS Mitigation**: Bounded JSON request body limit (`100kb`) via `express.json()`.
@@ -402,28 +406,27 @@ The application follows secure backend development practices:
 * [x] Add `JWT_SECRET` and `JWT_EXPIRES_IN` configuration
 * [x] Full regression preservation of Phase 1–4 endpoints
 
-### Phase 6 — Shopping Cart & Orders
+### Phase 6 — Cart & Cart Items (Completed ✅)
 
-* [ ] Cart persistence & CRUD endpoints
+* [x] Implement cart retrieval with calculated subtotal (`GET /api/cart`)
+* [x] Implement add-to-cart with conflict handling and stock checking (`POST /api/cart/items`)
+* [x] Implement cart item quantity update with user isolation (`PUT /api/cart/items/:id`)
+* [x] Implement cart item deletion with user isolation (`DELETE /api/cart/items/:id`)
+* [x] Protect all cart endpoints with JWT authentication middleware
+* [x] Full regression preservation of Phase 1–5 functionality
+
+### Phase 7 — Orders & Checkout
+
 * [ ] Checkout & order creation endpoints
 * [ ] Order history and details endpoints
 
-### Phase 7 — Frontend Development
+### Phase 8 — Frontend Development
 
 * [ ] Build application layout and navigation
 * [ ] Product browsing and search UI
 * [ ] Cart and checkout views
 * [ ] Authentication forms (Login/Register)
 
-
-### Phase 6 — E-Commerce Features
-
-* Product browsing
-* Product details
-* Shopping cart
-* Checkout
-* Order processing
-* Order history
 
 ### Phase 7 — Admin Features
 
