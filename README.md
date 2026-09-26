@@ -138,6 +138,11 @@ The application follows a three-layer full-stack architecture:
 ```text
 CodeAlpha_EcommerceStore/
 │
+├── .agents/
+│   └── skills/
+│       └── code-review/
+│           └── SKILL.md
+│
 ├── frontend/
 │   ├── public/
 │   └── src/
@@ -169,23 +174,87 @@ CodeAlpha_EcommerceStore/
 
 ---
 
-## 🗄️ Planned Database
+## 🗄️ Database Schema & Data Model (Phase 3 ✅)
 
-The PostgreSQL database will contain tables for the major entities of the application.
+The application uses PostgreSQL (`codealpha_ecommerce`) with relational integrity, constraints, and indexed foreign keys defined in [`database/schema.sql`](database/schema.sql).
 
-Initial planned tables include:
+### Core Tables & Structure
 
 ```text
-Users
-Products
-Categories
-Cart
-Cart_Items
-Orders
-Order_Items
+users
+  │
+  ├── cart (1:1 per user)
+  │     │
+  │     └── cart_items ─── products ─── categories
+  │
+  └── orders (1:N, protected against user deletion)
+        │
+        └── order_items ─── products (protected against product deletion)
 ```
 
-Relationships between these tables will be designed before implementation.
+1. **`users`**
+   - `id` — SERIAL PRIMARY KEY
+   - `name` — VARCHAR(255) NOT NULL
+   - `email` — VARCHAR(255) NOT NULL UNIQUE
+   - `password_hash` — VARCHAR(255) NOT NULL
+   - `created_at` / `updated_at` — TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+2. **`categories`**
+   - `id` — SERIAL PRIMARY KEY
+   - `name` — VARCHAR(100) NOT NULL UNIQUE
+   - `description` — TEXT
+   - `created_at` — TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+3. **`products`**
+   - `id` — SERIAL PRIMARY KEY
+   - `category_id` — INT REFERENCES categories(id) ON DELETE SET NULL
+   - `name` — VARCHAR(255) NOT NULL
+   - `description` — TEXT
+   - `price` — NUMERIC(10, 2) NOT NULL (CHECK: `price > 0`)
+   - `stock_quantity` — INT NOT NULL DEFAULT 0 (CHECK: `stock_quantity >= 0`)
+   - `image_url` — VARCHAR(500)
+   - `created_at` / `updated_at` — TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+4. **`cart`**
+   - `id` — SERIAL PRIMARY KEY
+   - `user_id` — INT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE
+   - `created_at` / `updated_at` — TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+5. **`cart_items`**
+   - `id` — SERIAL PRIMARY KEY
+   - `cart_id` — INT NOT NULL REFERENCES cart(id) ON DELETE CASCADE
+   - `product_id` — INT NOT NULL REFERENCES products(id) ON DELETE CASCADE
+   - `quantity` — INT NOT NULL DEFAULT 1 (CHECK: `quantity > 0`)
+   - `created_at` — TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+   - `CONSTRAINT uq_cart_product UNIQUE (cart_id, product_id)`
+
+6. **`orders`**
+   - `id` — SERIAL PRIMARY KEY
+   - `user_id` — INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT (preserves financial order history)
+   - `status` — VARCHAR(50) NOT NULL DEFAULT 'pending' (CHECK: `pending`, `confirmed`, `shipped`, `delivered`, `cancelled`)
+   - `total_amount` — NUMERIC(10, 2) NOT NULL DEFAULT 0.00 (CHECK: `total_amount >= 0`)
+   - `created_at` / `updated_at` — TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+7. **`order_items`**
+   - `id` — SERIAL PRIMARY KEY
+   - `order_id` — INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE
+   - `product_id` — INT NOT NULL REFERENCES products(id) ON DELETE RESTRICT (preserves historical purchase records)
+   - `quantity` — INT NOT NULL (CHECK: `quantity > 0`)
+   - `unit_price` — NUMERIC(10, 2) NOT NULL (CHECK: `unit_price > 0`, historical snapshot)
+   - `created_at` — TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+### Performance Indexes
+- `idx_products_category_id` on `products(category_id)`
+- `idx_cart_user_id` on `cart(user_id)`
+- `idx_cart_items_cart_id` on `cart_items(cart_id)`
+- `idx_cart_items_product_id` on `cart_items(product_id)`
+- `idx_orders_user_id` on `orders(user_id)`
+- `idx_order_items_order_id` on `order_items(order_id)`
+- `idx_order_items_product_id` on `order_items(product_id)`
+
+### Seed Data
+Safe initial test data (2 categories, 3 products, 1 development test user) is provided in `database/schema.sql` with `ON CONFLICT DO NOTHING`.
+
 
 ---
 
@@ -253,12 +322,14 @@ The application will follow basic security practices, including:
 * Configure PostgreSQL
 * Configure Git/GitHub
 
-### Phase 3 — Database
+### Phase 3 — Database (Completed ✅)
 
-* Create database
-* Create tables
-* Define relationships
-* Add initial test data
+* [x] Create database (`codealpha_ecommerce`)
+* [x] Create tables (`users`, `categories`, `products`, `cart`, `cart_items`, `orders`, `order_items`)
+* [x] Define relationships and foreign key delete rules
+* [x] Add database-level check and unique constraints
+* [x] Add performance indexes
+* [x] Add initial test seed data
 
 ### Phase 4 — Backend
 
@@ -350,17 +421,27 @@ npm install
 
 ### Environment Variables
 
-Create a `.env` file inside the backend directory.
-
-Example:
+Create a `.env` file inside the `backend` directory (refer to `backend/.env.example`):
 
 ```env
 PORT=5000
-DATABASE_URL=your_postgresql_connection_string
-JWT_SECRET=your_secret_key
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=codealpha_ecommerce
+DB_USER=postgres
+DB_PASSWORD=your_postgresql_password
 ```
 
 Never commit the `.env` file to GitHub.
+
+### Initialize Database Schema
+
+Apply the database schema and initial seed data using `psql` or PostgreSQL client:
+
+```bash
+psql -U postgres -d codealpha_ecommerce -f database/schema.sql
+```
+
 
 ---
 
