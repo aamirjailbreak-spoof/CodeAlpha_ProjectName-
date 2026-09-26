@@ -245,8 +245,6 @@ users
 
 ### Performance Indexes
 - `idx_products_category_id` on `products(category_id)`
-- `idx_cart_user_id` on `cart(user_id)`
-- `idx_cart_items_cart_id` on `cart_items(cart_id)`
 - `idx_cart_items_product_id` on `cart_items(product_id)`
 - `idx_orders_user_id` on `orders(user_id)`
 - `idx_order_items_order_id` on `order_items(order_id)`
@@ -258,69 +256,80 @@ Safe initial test data (2 categories, 3 products, 1 development test user) is pr
 
 ---
 
-## 🔌 Planned API
+## 🔌 API Endpoints
 
-The backend will expose RESTful APIs for frontend communication.
+The backend follows a lightweight modular Express architecture:
+`routes → controllers → PostgreSQL` with centralized error handling.
 
-Example endpoints:
-
+### System & Health Endpoints
 ```text
-Authentication
-POST   /api/auth/register
-POST   /api/auth/login
-
-Products
-GET    /api/products
-GET    /api/products/:id
-POST   /api/products
-PUT    /api/products/:id
-DELETE /api/products/:id
-
-Cart
-GET    /api/cart
-POST   /api/cart
-PUT    /api/cart/:itemId
-DELETE /api/cart/:itemId
-
-Orders
-POST   /api/orders
-GET    /api/orders
-GET    /api/orders/:id
+GET    /api/health            - Server health check
+GET    /api/db-test           - PostgreSQL connectivity test
 ```
 
-The final API structure may change during implementation.
+### Categories Endpoints (Phase 4 ✅)
+```text
+GET    /api/categories        - Retrieve all categories
+GET    /api/categories/:id    - Retrieve category by ID
+```
+
+### Products Endpoints (Phase 4 ✅)
+```text
+GET    /api/products          - Retrieve products (supports ?category_id=, ?search=, ?page=, ?limit=)
+GET    /api/products/:id      - Retrieve product by ID
+POST   /api/products          - Create new product (name, price, stock_quantity, category_id, image_url)
+PUT    /api/products/:id      - Update existing product
+DELETE /api/products/:id      - Delete unreferenced product
+```
+
+### Planned Future Endpoints
+```text
+Authentication (Phase 5)
+POST   /api/auth/register     - User registration
+POST   /api/auth/login        - User login
+
+Cart (Phase 6)
+GET    /api/cart              - Retrieve user cart
+POST   /api/cart              - Add item to cart
+PUT    /api/cart/:itemId      - Update item quantity
+DELETE /api/cart/:itemId      - Remove item from cart
+
+Orders (Phase 6)
+POST   /api/orders            - Checkout / create order
+GET    /api/orders            - View order history
+GET    /api/orders/:id        - View order details
+```
 
 ---
 
 ## 🔐 Security
 
-The application will follow basic security practices, including:
+The application follows secure backend development practices:
 
-* Password hashing
-* Authentication middleware
-* Authorization for protected routes
-* Environment variables for sensitive configuration
-* Input validation
-* API error handling
-* Protection of sensitive database credentials
+* Parameterized PostgreSQL queries across all endpoints to prevent SQL injection
+* Input and numeric parameter validation before querying the database
+* Centralized error middleware preventing stack trace or credential leakage
+* Bounded JSON request body limit (`100kb`)
+* Environment variables for sensitive configuration (`backend/.env` remains untracked)
+* Password hashing and token security planned for Phase 5 authentication
 
 ---
 
 ## 🚀 Development Roadmap
 
-### Phase 1 — Planning
+### Phase 1 — Planning (Completed ✅)
 
-* Define requirements
-* Design application flow
-* Design database
-* Design API structure
+* [x] Define requirements
+* [x] Design application flow
+* [x] Design database
+* [x] Design API structure
 
-### Phase 2 — Project Setup
+### Phase 2 — Project Setup (Completed ✅)
 
-* Initialize React frontend
-* Initialize Express backend
-* Configure PostgreSQL
-* Configure Git/GitHub
+* [x] Initialize React frontend
+* [x] Initialize Express backend
+* [x] Configure PostgreSQL
+* [x] Configure Git/GitHub
 
 ### Phase 3 — Database (Completed ✅)
 
@@ -331,13 +340,17 @@ The application will follow basic security practices, including:
 * [x] Add performance indexes
 * [x] Add initial test seed data
 
-### Phase 4 — Backend
+### Phase 4 — Backend: Products & Categories REST API (Completed ✅)
 
-* Create REST APIs
-* Implement CRUD operations
-* Add authentication
-* Add authorization
-* Connect backend to PostgreSQL
+* [x] Establish modular Express architecture (`routes → controllers → PostgreSQL`)
+* [x] Implement Categories endpoints (`GET /api/categories`, `GET /api/categories/:id`)
+* [x] Implement Products endpoints (`GET`, `POST`, `PUT`, `DELETE /api/products`)
+* [x] Add category filtering, case-insensitive keyword search, and pagination
+* [x] Implement centralized error handler and bounded request limits
+* [x] Ensure regression preservation for `/api/health` and `/api/db-test`
+* [ ] User authentication & authorization (Phase 5)
+* [ ] Cart & Order APIs (Phase 6)
+
 
 ### Phase 5 — Frontend
 
