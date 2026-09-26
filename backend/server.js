@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 5000;
 
 const categoryRoutes = require('./routes/categoryRoutes');
 const productRoutes = require('./routes/productRoutes');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 app.use(cors());
@@ -37,6 +39,8 @@ app.get('/api/db-test', async (req, res) => {
 // Modular Routes
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Centralized Error Handling Middleware
 app.use(errorHandler);

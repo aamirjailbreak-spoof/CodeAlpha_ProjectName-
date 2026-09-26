@@ -282,12 +282,53 @@ PUT    /api/products/:id      - Update existing product
 DELETE /api/products/:id      - Delete unreferenced product
 ```
 
+### Authentication & Users Endpoints (Phase 5 ✅)
+```text
+POST   /api/auth/register     - Register a new user account
+POST   /api/auth/login        - Authenticate credentials and receive a signed JWT
+GET    /api/users/me          - Retrieve authenticated user profile (requires Bearer token)
+```
+
+#### Authentication Header Format
+Protected endpoints require the standard `Authorization` header:
+```text
+Authorization: Bearer <your_jwt_token>
+```
+
+#### Example Payloads
+**Register Request (`POST /api/auth/register`)**:
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "securepassword123"
+}
+```
+
+**Login Request (`POST /api/auth/login`)**:
+```json
+{
+  "email": "jane@example.com",
+  "password": "securepassword123"
+}
+```
+
+**Protected Profile Response (`GET /api/users/me`)**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "created_at": "2026-09-26T04:00:00.000Z",
+    "updated_at": "2026-09-26T04:00:00.000Z"
+  }
+}
+```
+
 ### Planned Future Endpoints
 ```text
-Authentication (Phase 5)
-POST   /api/auth/register     - User registration
-POST   /api/auth/login        - User login
-
 Cart (Phase 6)
 GET    /api/cart              - Retrieve user cart
 POST   /api/cart              - Add item to cart
@@ -306,12 +347,14 @@ GET    /api/orders/:id        - View order details
 
 The application follows secure backend development practices:
 
-* Parameterized PostgreSQL queries across all endpoints to prevent SQL injection
-* Input and numeric parameter validation before querying the database
-* Centralized error middleware preventing stack trace or credential leakage
-* Bounded JSON request body limit (`100kb`)
-* Environment variables for sensitive configuration (`backend/.env` remains untracked)
-* Password hashing and token security planned for Phase 5 authentication
+* **Password Hashing**: Passwords hashed with `bcrypt` (10 salt rounds); plaintext passwords and `password_hash` are never stored plaintext or exposed in API responses.
+* **Token Authentication**: Signed JSON Web Tokens (`jsonwebtoken`) containing minimal payload (`{ userId }`) with expiration (`JWT_EXPIRES_IN`).
+* **Timing & Enumeration Defense**: Generic 401 error message ("Invalid email or password") used for both non-existent users and invalid passwords.
+* **Input Normalization & Validation**: Email addresses trimmed and lowercased; passwords constrained between 8 and 72 characters; names capped at 255 characters.
+* **SQL Injection Defense**: 100% parameterized PostgreSQL queries (`$1, $2, ...`) via `pg`.
+* **Centralized Error Handling**: Database errors, stack traces, and credentials are intercepted and sanitized before returning responses.
+* **DoS Mitigation**: Bounded JSON request body limit (`100kb`) via `express.json()`.
+* **Environment Segregation**: Secrets (`DB_PASSWORD`, `JWT_SECRET`) remain exclusively in untracked `backend/.env`.
 
 ---
 
@@ -348,16 +391,30 @@ The application follows secure backend development practices:
 * [x] Add category filtering, case-insensitive keyword search, and pagination
 * [x] Implement centralized error handler and bounded request limits
 * [x] Ensure regression preservation for `/api/health` and `/api/db-test`
-* [ ] User authentication & authorization (Phase 5)
-* [ ] Cart & Order APIs (Phase 6)
 
+### Phase 5 — Authentication & Users (Completed ✅)
 
-### Phase 5 — Frontend
+* [x] Integrate `bcrypt` and `jsonwebtoken`
+* [x] Implement user registration (`POST /api/auth/register`) with duplicate email defense
+* [x] Implement user login (`POST /api/auth/login`) with generic credential error handling
+* [x] Implement `authMiddleware` for Bearer token validation
+* [x] Implement authenticated user profile (`GET /api/users/me`)
+* [x] Add `JWT_SECRET` and `JWT_EXPIRES_IN` configuration
+* [x] Full regression preservation of Phase 1–4 endpoints
 
-* Build application layout
-* Create pages
-* Create reusable components
-* Connect frontend to APIs
+### Phase 6 — Shopping Cart & Orders
+
+* [ ] Cart persistence & CRUD endpoints
+* [ ] Checkout & order creation endpoints
+* [ ] Order history and details endpoints
+
+### Phase 7 — Frontend Development
+
+* [ ] Build application layout and navigation
+* [ ] Product browsing and search UI
+* [ ] Cart and checkout views
+* [ ] Authentication forms (Login/Register)
+
 
 ### Phase 6 — E-Commerce Features
 
@@ -443,6 +500,8 @@ DB_PORT=5432
 DB_NAME=codealpha_ecommerce
 DB_USER=postgres
 DB_PASSWORD=your_postgresql_password
+JWT_SECRET=your_secure_jwt_secret
+JWT_EXPIRES_IN=1d
 ```
 
 Never commit the `.env` file to GitHub.
