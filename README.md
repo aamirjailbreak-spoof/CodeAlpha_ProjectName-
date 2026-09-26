@@ -336,12 +336,39 @@ PUT    /api/cart/items/:id    - Update item quantity in cart (body: { quantity }
 DELETE /api/cart/items/:id    - Remove item from cart
 ```
 
-### Planned Future Endpoints
+### Orders & Checkout Endpoints (Phase 7 ✅)
+All order endpoints require authentication (`Authorization: Bearer <token>`).
 ```text
-Orders (Phase 7)
-POST   /api/orders            - Checkout / create order
-GET    /api/orders            - View order history
-GET    /api/orders/:id        - View order details
+POST   /api/orders            - Create order from active cart (transactional checkout & atomic stock deduction)
+GET    /api/orders            - View authenticated user's order history with summary stats
+GET    /api/orders/:id        - View order details with line items and product info (user-isolated)
+```
+
+#### Order Response Example (`POST /api/orders` / `GET /api/orders/:id`)
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "user_id": 2,
+    "status": "pending",
+    "total_amount": "199.98",
+    "items": [
+      {
+        "id": 1,
+        "order_id": 1,
+        "product_id": 1,
+        "product_name": "Wireless Noise-Canceling Headphones",
+        "quantity": 2,
+        "unit_price": "99.99",
+        "item_total": "199.98",
+        "created_at": "2026-09-26T04:40:00.000Z"
+      }
+    ],
+    "created_at": "2026-09-26T04:40:00.000Z",
+    "updated_at": "2026-09-26T04:40:00.000Z"
+  }
+}
 ```
 
 ---
@@ -350,7 +377,9 @@ GET    /api/orders/:id        - View order details
 
 The application follows secure backend development practices:
 
-* **Authentication & User Isolation**: Cart operations are strictly scoped to the authenticated user ID extracted from verified JWT tokens. Users cannot access, modify, or delete another user's cart or cart items.
+* **Authentication & User Isolation**: Orders and Cart operations are strictly scoped to the authenticated user ID extracted from verified JWT tokens. Users cannot access, modify, or delete another user's cart or orders. Cross-user order access returns a safe 404 Not Found to prevent data enumeration.
+* **Transactional Checkout & Concurrency**: Checkout uses PostgreSQL transactions (`BEGIN ... COMMIT / ROLLBACK`) with row-level locking (`FOR UPDATE OF p` sorted deterministically by `id ASC`) and atomic conditional stock deduction (`WHERE stock_quantity >= $quantity`). This eliminates race conditions and overselling.
+* **Price Snapshotting**: Order items permanently store the checkout-time price in `unit_price`, protecting against future catalog price fluctuations.
 * **Password Hashing**: Passwords hashed with `bcrypt` (10 salt rounds); plaintext passwords and `password_hash` are never stored plaintext or exposed in API responses.
 * **Token Authentication**: Signed JSON Web Tokens (`jsonwebtoken`) containing minimal payload (`{ userId }`) with expiration (`JWT_EXPIRES_IN`).
 * **Timing & Enumeration Defense**: Generic 401 error message ("Invalid email or password") used for both non-existent users and invalid passwords.
@@ -415,10 +444,16 @@ The application follows secure backend development practices:
 * [x] Protect all cart endpoints with JWT authentication middleware
 * [x] Full regression preservation of Phase 1–5 functionality
 
-### Phase 7 — Orders & Checkout
+### Phase 7 — Orders & Checkout (Completed ✅)
 
-* [ ] Checkout & order creation endpoints
-* [ ] Order history and details endpoints
+* [x] Implement transactional order creation with atomic stock decrement (`POST /api/orders`)
+* [x] Snapshot checkout unit price in `order_items`
+* [x] Automatic cart clearing upon successful checkout
+* [x] Implement order history retrieval with summary stats (`GET /api/orders`)
+* [x] Implement single order details retrieval with line items (`GET /api/orders/:id`)
+* [x] Strict user isolation on all order endpoints
+* [x] Protect against concurrent checkout overselling and race conditions
+* [x] Full regression preservation of Phase 1–6 functionality
 
 ### Phase 8 — Frontend Development
 
