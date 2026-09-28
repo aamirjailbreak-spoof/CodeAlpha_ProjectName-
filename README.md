@@ -577,11 +577,7 @@ The application will be tested for:
 
 ---
 
-## 📸 Screenshots
 
-Screenshots will be added after the frontend implementation is completed.
-
----
 
 ## 🌐 Live Demo
 
