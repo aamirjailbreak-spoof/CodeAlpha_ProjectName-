@@ -41,6 +41,7 @@ The goal of this project is to develop a functional full-stack e-commerce applic
 * HTML5
 * CSS3
 * JavaScript
+* Vercel Web Interface Guidelines Compliance (ARIA accessibility, focus-visible states, reduced motion, tabular numerals)
 
 ### Backend
 
@@ -163,7 +164,10 @@ CodeAlpha_EcommerceStore/
 │   └── server.js
 │
 ├── database/
-│   └── schema.sql
+│   ├── migrations/
+│   │   └── 001_add_checkout_fields.sql
+│   ├── schema.sql
+│   └── seed_curated_catalog.js
 │
 ├── .gitignore
 ├── README.md
@@ -233,7 +237,21 @@ users
    - `user_id` — INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT (preserves financial order history)
    - `status` — VARCHAR(50) NOT NULL DEFAULT 'pending' (CHECK: `pending`, `confirmed`, `shipped`, `delivered`, `cancelled`)
    - `total_amount` — NUMERIC(10, 2) NOT NULL DEFAULT 0.00 (CHECK: `total_amount >= 0`)
+   - `customer_name` — VARCHAR(150) (Validated 2–150 characters, nullable for historical orders)
+   - `phone` — VARCHAR(30) (Validated phone format, nullable for historical orders)
+   - `shipping_address` — VARCHAR(255) (Street address, nullable for historical orders)
+   - `shipping_city` — VARCHAR(100) (Delivery city, nullable for historical orders)
+   - `shipping_postal_code` — VARCHAR(20) (Postal/ZIP code, nullable for historical orders)
+   - `delivery_method` — VARCHAR(50) (CHECK: `standard`, `express`; nullable for historical orders, explicitly supplied at checkout)
+   - `delivery_fee` — NUMERIC(10, 2) (CHECK: `delivery_fee >= 0`; nullable for historical orders, calculated server-side at checkout)
+   - `payment_method` — VARCHAR(50) (CHECK: `cash_on_delivery`, `online`; nullable for historical orders, explicitly supplied at checkout)
+   - `payment_status` — VARCHAR(50) (CHECK: `pending`, `paid`, `failed`, `cancelled`; nullable for historical orders, explicitly supplied as 'pending' at checkout)
    - `created_at` / `updated_at` — TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+> **Historical Order Preservation & Schema Integrity**:
+> The checkout fields (`delivery_method`, `delivery_fee`, `payment_method`, `payment_status`, and contact/address fields) are nullable with no database-level defaults. This ensures that legacy orders created before Phase 9 remain accurately recorded as unassigned (`NULL`) without inheriting artificial or misleading default values. All new orders created via the backend checkout API (`POST /api/orders`) explicitly supply verified values for these fields.
+> A permanent non-destructive migration script is provided in [`database/migrations/001_add_checkout_fields.sql`](database/migrations/001_add_checkout_fields.sql).
+
 
 7. **`order_items`**
    - `id` — SERIAL PRIMARY KEY
@@ -336,37 +354,68 @@ PUT    /api/cart/items/:id    - Update item quantity in cart (body: { quantity }
 DELETE /api/cart/items/:id    - Remove item from cart
 ```
 
-### Orders & Checkout Endpoints (Phase 7 ✅)
+### Orders & Checkout Endpoints (Phase 7 & 9 ✅)
 All order endpoints require authentication (`Authorization: Bearer <token>`).
 ```text
-POST   /api/orders            - Create order from active cart (transactional checkout & atomic stock deduction)
+POST   /api/orders            - Create order from active cart with delivery and payment metadata
 GET    /api/orders            - View authenticated user's order history with summary stats
-GET    /api/orders/:id        - View order details with line items and product info (user-isolated)
+GET    /api/orders/:id        - View order details with line items and fulfillment metadata (user-isolated)
 ```
+
+#### Checkout Request Payload (`POST /api/orders`)
+```json
+{
+  "customer_name": "Jane Doe",
+  "phone": "+1 555-0199",
+  "shipping_address": "123 Artisan Way, Apt 4B",
+  "shipping_city": "New York",
+  "shipping_postal_code": "10001",
+  "delivery_instructions": "Gate code #401",
+  "delivery_method": "standard",
+  "payment_method": "cash_on_delivery"
+}
+```
+
+#### Centralized Server-Side Delivery Fee Rules
+Delivery fees are strictly evaluated on the server side:
+- **Standard Delivery**: `$4.95` (ETA 3–5 business days)
+- **Express Delivery**: `$14.95` (ETA 1–2 business days)
+- **Trusted Total Formula**: `total_amount = subtotal + delivery_fee`
 
 #### Order Response Example (`POST /api/orders` / `GET /api/orders/:id`)
 ```json
 {
   "success": true,
   "data": {
-    "id": 1,
+    "id": 19,
     "user_id": 2,
     "status": "pending",
-    "total_amount": "199.98",
+    "subtotal": "490.00",
+    "delivery_fee": "14.95",
+    "total_amount": "504.95",
+    "customer_name": "Jane Doe",
+    "phone": "+1 555-0199",
+    "shipping_address": "123 Artisan Way, Apt 4B",
+    "shipping_city": "New York",
+    "shipping_postal_code": "10001",
+    "delivery_instructions": "Gate code #401",
+    "delivery_method": "express",
+    "payment_method": "online",
+    "payment_status": "pending",
     "items": [
       {
-        "id": 1,
-        "order_id": 1,
+        "id": 25,
+        "order_id": 19,
         "product_id": 1,
-        "product_name": "Wireless Noise-Canceling Headphones",
+        "product_name": "Studio Master Reference Headphones",
         "quantity": 2,
-        "unit_price": "99.99",
-        "item_total": "199.98",
-        "created_at": "2026-09-26T04:40:00.000Z"
+        "unit_price": "245.00",
+        "item_total": "490.00",
+        "created_at": "2026-09-28T10:28:40.000Z"
       }
     ],
-    "created_at": "2026-09-26T04:40:00.000Z",
-    "updated_at": "2026-09-26T04:40:00.000Z"
+    "created_at": "2026-09-28T10:28:40.000Z",
+    "updated_at": "2026-09-28T10:28:40.000Z"
   }
 }
 ```
@@ -469,19 +518,170 @@ The application follows secure backend development practices:
 * [x] Centralized API client service (`api.js`) and JWT token lifecycle management (`AuthContext.jsx`)
 * [x] Full regression preservation of backend APIs (Phases 1–7)
 
-### Phase 9 — Testing & Quality Assurance
+### Phase 8.1 — Premium Editorial Retail Redesign & Catalog Expansion (Completed ✅)
 
-* [ ] Comprehensive end-to-end integration testing
-* [ ] Performance audits & responsiveness review
-* [ ] Final cross-browser validation
+* [x] **Premium Editorial Retail Design System (`index.css` & `App.css`)**:
+  * Established a restrained editorial palette: warm ivory/off-white surfaces (`#faf9f6`), deep charcoal typography (`#161513`), warm secondary text (`#54514a`), subtle hairline borders (`#ebe7de`), and a single restrained warm cognac accent (`#8a542b`).
+  * Replaced all tech-dashboard patterns (radial glow blobs, neon indigo gradients, floating pill widgets, glassmorphism) with crisp architectural retail layouts and Google Font pairings (`Instrument Serif` & `Inter`).
+  * Enforced accessible `:focus-visible` outlines, `tabular-nums` numeric alignments, and delicate 2px–4px geometry.
+* [x] **Catalog Expansion across Real Database (26 Products, 4 Categories)**:
+  * Expanded the live PostgreSQL catalog from 3 items to 26 realistic, thoughtfully curated products with high-resolution imagery, realistic pricing ($34.00 – $340.00), and believable inventory quantities.
+  * Distributed naturally across 4 core departments: **Electronics** (7), **Apparel** (8), **Footwear & Leather** (5), and **Living & Objects** (6).
+  * Maintained 100% compliance with existing backend schema, constraints, and REST API contracts.
+* [x] **Editorial Retail Storefront & Hero (`HeroSection.jsx`)**:
+  * Designed an editorial retail introduction with typographic hierarchy, collection metadata (`COLLECTION № 04 • 2026`), and generous whitespace.
+  * Removed gimmicky animations from the hero for a calm, expensive, product-first retail atmosphere.
+* [x] **Architectural Retail Navigation (`Navbar.jsx`)**:
+  * Wordmark branding (`CODEALPHA EDITIONS`), clean department navigation links with active underlines, search trigger, client account actions, and minimal bag counter (`Bag (X)`).
+* [x] **Retail Product Grid & Portrait Cards (`ProductGrid.jsx`, `ProductCard.jsx`)**:
+  * Fashion/lifestyle standard 3:4 portrait image framing with warm neutral backgrounds and subtle hover zoom (`scale(1.025)`).
+  * Minimalist hover Quick View action, understated stock flags (e.g. `Only 2 Left` or `Sold Out`), and clean `+ Add to Bag` action.
+  * Integrated multi-sort controls (Featured, Price: Low-to-High, Price: High-to-Low, Alphabetical A–Z) and instant debounced search.
+* [x] **Quick View Modal & Checkout Drawer (`ProductDetailModal.jsx`, `CartDrawer.jsx`)**:
+  * Architectural 2-column detail modal with large portrait photography, quantity steppers, and direct add-to-bag.
+  * Slide-over checkout drawer with item thumbnails, stepper quantity controls, complimentary delivery indicator, and clear purchase summary.
+* [x] **Client Auth, Orders & Profile (`AuthModal.jsx`, `OrdersModal.jsx`, `ProfileModal.jsx`)**:
+  * Cohesive warm ivory surfaces, hairline dividers, itemized order receipts with status badges, and account metadata.
+* [x] **Vercel Web Interface Guidelines Compliance**:
+  * Hardware-accelerated transitions, zero `transition: all`, complete reduced-motion support via `@media (prefers-reduced-motion: reduce)`, and touch targets ≥ 44px.
 
-### Phase 8 — Testing
+### Phase 8.2 — Professional Quality-Control, Visual Polish & Content Audit (Completed ✅)
 
-* Frontend testing
-* API testing
-* Authentication testing
-* Database testing
-* Error handling
+* [x] **Product Content & Imagery Quality Audit**:
+  * Audited and resolved all catalog discrepancies identified during visual QA:
+    * Eliminated duplicate product photography (duplicate t-shirt portrait and duplicate chiclet keyboards).
+    * Replaced all mismatched imagery (e.g. plastic ocean waste replaced with authentic smoked oak organizer tray; bathroom tub replaced with cast iron incense burner; casual portrait replaced with tailored wool overcoat).
+    * Replaced broken 404 image URLs with verified, high-resolution lifestyle photography.
+  * Verified 100% image-to-title-to-category relevance across all products.
+* [x] **Curated 24-Product Real Database Catalog**:
+  * Seeded 24 authentic, balanced products evenly distributed across 4 departments (6 per category: Electronics, Apparel, Footwear & Leather, Living & Objects).
+  * Professional editorial naming and believable retail pricing ($32.00 – $340.00).
+  * Real PostgreSQL persistence via `database/seed_curated_catalog.js` and synchronized `database/schema.sql` (no fake React-only data).
+* [x] **Product Card Geometry & Grid Rhythm Polish (`ProductCard.jsx`, `App.css`)**:
+  * Fixed card height and grid alignment by constraining title blocks to uniform two-line heights (`min-height: 2.7em`).
+  * Replaced detached, asymmetric inline buttons with clean, full-width `Add to Bag` action buttons aligned to the base of every card.
+  * Redesigned the Quick View trigger into a floating, centered pill overlay on hover with smooth opacity transitions that never covers the product photography.
+  * Polished typographic hierarchy: `Category (11px, uppercase, 0.08em tracking)` → `Product Title (15px, medium, 2-line clamp)` → `Price (15px, tabular numerals)` → `Action Button`.
+* [x] **Category Flow & Filtering Resolution**:
+  * Corrected category mapping disconnect between the client navigation and backend database: replaced static hardcoded IDs in `Navbar.jsx` with dynamic database-driven categories loaded from `/api/categories`.
+  * Normalized database categories with clean sequential IDs (1: Electronics, 2: Apparel, 3: Footwear & Leather, 4: Living & Objects) with 6 products each.
+  * Enhanced `ProductGrid.jsx` to resolve both numeric IDs and textual category names seamlessly.
+  * Eliminated visual tab cramping and merging by enforcing `flex-shrink: 0`, minimum 40px touch targets, and a responsive two-row toolbar layout on tablets and mobile screens (`@media (max-width: 980px)`).
+* [x] **End-to-End Automated Integration Verification (`backend/test_flows.js`, `backend/test_categories.js`)**:
+  * Built and executed full-suite integration tests verifying `/health`, category filtering, search, user registration & login, cart operations, transactional order creation, and order retrieval against live PostgreSQL and Express backend.
+* [x] **Production Build & Lint Validation**:
+  * Zero build errors via Vite (`npm run build`) and clean static analysis via oxlint (`npm run lint`).
+
+### Phase 8.3 — Modern Frontend UI/UX Upgrade: Curated Lifestyle & Design System (Completed ✅)
+
+* [x] **Brand Identity & Favicon Transformation**:
+  * Replaced the default Vite/React lightning bolt favicon with a custom-engineered **Brand Geometric Emblem SVG Favicon** (`frontend/public/favicon.svg`) featuring warm amber/saffron gradients, high contrast against dark and light browser tabs (optimized for 16×16, 32×32, and high-res display).
+  * Updated `index.html` page title to **`CodeAlpha Store • Curated Electronics, Apparel & Living Objects`** with descriptive metadata and theme color.
+  * Integrated modern Google Fonts: **Plus Jakarta Sans** and **Outfit** alongside Instrument Serif for an editorial, premium design-system typography hierarchy.
+* [x] **Modern Hero Section (`HeroSection.jsx`)**:
+  * Designed an elevated, high-impact editorial hero section with edition badges (`CURATED EDITION • 2026`), display headline, and descriptive narrative.
+  * Dual CTAs: *Explore Collection* (smooth scroll to catalog) and *Our Quality Standards* (smooth scroll to brand values).
+  * Trust proof badges: 100% Authenticity Guaranteed and Complimentary Shipping Over $75.
+  * Interactive featured showcase preview card with subtle warm glow, badge, and verified star rating.
+* [x] **Premium Liquid Glass Cart Button (`Navbar.jsx`, `App.css`)**:
+  * Replaced standard cart action with a liquid glassmorphic pill button inspired by modern 21st.dev UI patterns.
+  * Formatted as a horizontal oval pill with subtle backdrop blur (`backdrop-filter: blur(12px)`), translucent amber gradient, specular light reflection overlay (`.glass-btn-reflection`), and dual-layer inset & ambient shadows derived from the existing warm brand palette.
+  * Replaced the shopping bag icon with a proper accessible `CartIcon` and updated text label to *Cart*.
+  * Preserved full functionality and state integration, smoothly opening the existing cart drawer without touching backend or context logic.
+  * Tactile hover lift, pressed state (`transform: scale(0.97)`), and accessible `:focus-visible` ring.
+* [x] **21st.dev-Inspired Spotlight Product Cards (`ProductCard.jsx`, `App.css`)**:
+  * Integrated a lightweight cursor-tracking radial spotlight (`.card-spotlight-glow`) and illuminated perimeter glow (`.card-spotlight-border`) using CSS custom properties (`--mouse-x`, `--mouse-y`) updated directly on mouse move.
+  * Achieves 60/120fps hardware-accelerated spotlight illumination without causing React re-renders.
+  * Palette-aligned illumination using warm amber/saffron gradients (`rgba(217, 107, 39, ...)` and `rgba(245, 166, 35, ...)`), keeping product titles and descriptions 100% legible.
+  * Gracefully disabled on touch devices (`@media (hover: none)`) and for reduced-motion preferences (`@media (prefers-reduced-motion: reduce)`).
+  * Maintained all existing product data, image presentation, prices, ratings, and Add to Cart flows.
+* [x] **Catalog Toolbar & Filter Controls (`ProductGrid.jsx`)**:
+  * Active pill-shaped category tabs with smooth transitions and hover states.
+  * Search bar with debounced filtering, clear action, and search icon.
+  * Custom styled sort selector (Featured, Price: Low to High, Price: High to Low, Alphabetical).
+  * Responsive catalog item counter badge.
+  * Polished empty state with search reset button and custom error state with retry connection trigger.
+* [x] **Brand Values & Final CTA Section (`BrandValues.jsx`)**:
+  * 4-pillar brand commitment grid: *Curated Product Quality*, *Trusted Product Selection*, *Secure & Reliable Shopping*, and *Reliable Delivery*.
+  * Editorial customer praise block with 5-star rating and quote.
+  * High-contrast final CTA banner with rich espresso background, golden ambient glow, and *Browse Full Collection* button.
+* [x] **Slide-Over Cart Drawer (`CartDrawer.jsx`)**:
+  * Integrated dynamic **Free Shipping Progress Meter** ($45 threshold) that updates live with subtotal changes.
+  * Tactile `+` and `-` quantity steppers with min/max stock awareness.
+  * Item remove action with custom notification toast.
+  * Fixed sticky checkout footer with cost breakdown and SSL-guarantee note.
+  * Body scroll locking (`document.body.classList.add('modal-open')`) when drawer is active.
+* [x] **Floating Toast Notifications (`App.jsx`)**:
+  * Reusable floating toast notification system with animated slide-up, status icon, and dismiss button.
+  * Integrated for add to bag, remove from bag, order completion, and newsletter subscription.
+* [x] **Polished Multi-Column Footer (`App.jsx`)**:
+  * Interactive newsletter subscription form with email validation and instant confirmation state.
+  * Brand manifesto, small-batch guarantees, and deep-link category filters.
+  * Technical attribution to PostgreSQL 18, Express REST API, and React 19.
+* [x] **Responsive Mobile Layout & Accessibility**:
+  * Implemented responsive mobile drawer navigation menu with hamburger toggle for devices under 768px.
+  * Full adherence to Vercel Web Interface Guidelines: keyboard Escape key handlers on all modals, accessible `:focus-visible` rings with offset, minimum 44px touch targets, and `prefers-reduced-motion` compliance.
+  * Tested across breakpoints: 320px, 375px, 425px, 768px, 1024px, 1440px+.
+
+### Phase 8.4 — Clean Minimal Sign-In & Authentication Experience (Completed ✅)
+
+* [x] **Clean Minimal Authentication Card Architecture (`AuthModal.jsx`)**:
+  * Centered authentication dialog with modern 20px curvature, subtle perimeter border, and multi-layered ambient depth shadow (`box-shadow: 0 20px 48px -10px rgba(25, 21, 18, 0.22)`).
+  * Centered brand mark emblem header with welcoming typography ("Welcome back" / "Create an account") and clear contextual subheadings.
+* [x] **Dual Authentication Segmented Control**:
+  * Tactile pill switcher seamlessly toggling between **Sign In** and **Register** with zero page reload or jarring layout shifts.
+  * Secondary prompt switch at the base of the card ("Don't have an account? Sign up" / "Already have an account? Sign in").
+* [x] **Icon-Enhanced Accessible Input Fields (`Icons.jsx`, `App.css`)**:
+  * Email input with inline `MailIcon`, email format validation, and proper autocomplete/inputmode attributes.
+  * Password input with inline `LockIcon` and interactive show/hide password toggle button with `EyeIcon` / `EyeOffIcon` and accessible ARIA states.
+  * Full Name field with inline `UserIcon` dynamically rendered during registration.
+  * 44px touch targets with smooth warm focus ring highlights (`box-shadow: 0 0 0 3px var(--accent-primary-subtle)`).
+* [x] **Inline Validation & Backend Error Handling**:
+  * Client-side validation for empty fields, email syntax, and minimum 8-character password length.
+  * Structured error alert banner (`.auth-error-banner`) with `AlertCircleIcon` rendering both local validation and backend HTTP 401/400 error responses politely via ARIA live regions.
+* [x] **Double-Submission Prevention & Loading States**:
+  * Primary submit button displays hardware-accelerated animated spinner (`SpinnerIcon`) and dynamic label ("Signing In…" / "Creating Account…") while disabling inputs and preventing duplicate API calls.
+* [x] **Full-Stack Auth Integration & Session Preservation**:
+  * 100% preservation of existing real JWT authentication via `POST /api/auth/login` and `POST /api/auth/register` through `AuthContext.jsx` and `api.js`.
+  * Seamless state propagation: successful authentication updates navigation state with user details, orders trigger, and sign-out controls; logout cleans session tokens and restores initial state.
+* [x] **Keyboard Accessibility & Viewport Safety**:
+  * Modal respects keyboard `Escape` dismissal, background overlay click cancellation, and locks body scrolling while open.
+  * Constrained viewport height (`max-height: 90vh; overflow-y: auto`) ensuring zero overflow or clipping on mobile viewports.
+
+### Phase 8.4 — Multi-Step E-Commerce Checkout & Fulfillment Upgrade (Completed ✅)
+
+* [x] **Multi-Step Checkout Flow Modal (`CheckoutModal.jsx`)**:
+  * Upgraded from single-click checkout to an industry-standard 3-step checkout experience:
+    1. **Contact & Shipping Information**: Full name (prefilled from client account), phone number, delivery address, city, postal/ZIP code, and optional delivery instructions.
+    2. **Logistics & Payment Options**: Interactive radio option cards for delivery service and payment method.
+    3. **Order Review & Verification**: Complete breakdown showing itemized line items, recipient details, server-side calculated delivery fees, and clear total.
+    4. **Order Confirmation Receipt**: Clean receipt view displaying order reference number, total amount, shipping destination, logistics ETA, and quick navigation to *Order History* or *Continue Shopping*.
+* [x] **Centralized Server-Side Delivery Fee Engine**:
+  * Delivery fees are computed exclusively by the backend source of truth:
+    * **Standard Delivery**: `$4.95` (3–5 business days ground shipping)
+    * **Express Delivery**: `$14.95` (1–2 business days priority air dispatch)
+  * Trusted total formula: `subtotal + delivery_fee` calculated in PostgreSQL transaction.
+* [x] **Non-Destructive Database Schema Migration**:
+  * Live migrated PostgreSQL `orders` table without data loss or dropping tables.
+  * Added 10 columns: `customer_name`, `phone`, `shipping_address`, `shipping_city`, `shipping_postal_code`, `delivery_instructions`, `delivery_method` (with `CHECK: standard, express`), `delivery_fee` (`CHECK: >= 0`), `payment_method` (`CHECK: cash_on_delivery, online`), and `payment_status` (`CHECK: pending, paid, failed, cancelled`).
+  * Synchronized schema in [`database/schema.sql`](database/schema.sql).
+* [x] **Preserved Transaction Atomicity & Concurrency Safety**:
+  * Preserved deterministic `FOR UPDATE OF p ORDER BY p.id ASC` row-level locks, stock verification, and rollback semantics in `POST /api/orders`.
+* [x] **Safe Historical Order Preservation & "Not recorded" Fallbacks**:
+  * All legacy historical orders remain accessible and unaltered with zero fake backfilled data.
+  * `OrdersModal.jsx` gracefully renders legacy orders by displaying `"Not recorded"` for missing customer or shipping fields.
+* [x] **Order History & Previous Orders UI Modernization (`OrdersModal.jsx`, `App.css`)**:
+  * Replaced compressed inline text with distinct, beautifully separated order cards.
+  * Dedicated layout hierarchy: `Order #ID` and colored status pill on top row, date and item count on secondary row, isolated Total row, and explicit *"View Details"* / *"Hide Details"* button with rotating chevron.
+  * Replaced raw compressed table (`ItemQtyPriceTotal`) with readable stacked product rows (`Product Title`, `Qty X × $Price`, and right-aligned line total).
+  * Expanded delivery and payment sections with comfortable two-column desktop grid, responsive mobile stacking, and wrapped labels preventing broken words.
+  * Clean financial breakdown with Subtotal, Delivery Fee, and Order Total.
+* [x] **Automated End-to-End Regression Verification & Idempotence**:
+  * Full integration suite (`backend/test_flows.js` and `backend/test_checkout_comprehensive.js`) validates validation errors, fee calculations, atomic stock decrements, order placement, and historical record integrity.
+  * **Test Isolation & Zero Database Pollution**: Automated tests deterministically clean up only their self-created QA user and order records in `finally` blocks, preserving development records.
+  * **Relative Stock Restoration**: Restores only test-caused stock decrements via exact relative deltas (`UPDATE products SET stock_quantity = stock_quantity + $delta WHERE id = $target`), preventing catalog stock drifts.
+* [x] **Strict Online Payment Terminology**:
+  * Without an integrated payment gateway or authorization processor, online orders are accurately designated as `Payment method: Online` with `Payment status: Pending` across all UI modals, API contracts, and tests without misleading pre-auth or capture terminology.
 
 ### Phase 9 — Deployment
 

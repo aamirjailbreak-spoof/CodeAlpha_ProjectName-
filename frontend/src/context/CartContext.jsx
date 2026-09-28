@@ -33,6 +33,7 @@ export function CartProvider({ children }) {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchCart();
   }, [fetchCart]);
 
@@ -91,27 +92,30 @@ export function CartProvider({ children }) {
     [fetchCart]
   );
 
-  const checkout = useCallback(async () => {
-    if (!isAuthenticated) {
-      throw new Error('Please sign in to complete checkout');
-    }
+  const checkout = useCallback(
+    async (checkoutData = {}) => {
+      if (!isAuthenticated) {
+        throw new Error('Please sign in to complete checkout');
+      }
 
-    setLoading(true);
-    setCartError(null);
-    try {
-      const res = await api.orders.create();
-      // On success, reset local cart and refresh
-      setCart({ items: [], subtotal: '0.00', total_items: 0 });
-      return res.data;
-    } catch (err) {
-      // If error (e.g. stock limitation), refresh cart to reflect latest state
-      await fetchCart();
-      setCartError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, fetchCart]);
+      setLoading(true);
+      setCartError(null);
+      try {
+        const res = await api.orders.create(checkoutData);
+        // On success, reset local cart and refresh
+        setCart({ items: [], subtotal: '0.00', total_items: 0 });
+        return res.data;
+      } catch (err) {
+        // If error (e.g. stock limitation), refresh cart to reflect latest state
+        await fetchCart();
+        setCartError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [isAuthenticated, fetchCart]
+  );
 
   const value = {
     cart,
@@ -132,6 +136,7 @@ export function CartProvider({ children }) {
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
+// oxlint-disable-next-line react/only-export-components
 export function useCart() {
   const context = useContext(CartContext);
   if (!context) {

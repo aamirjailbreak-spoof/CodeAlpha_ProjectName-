@@ -108,7 +108,7 @@ export const api = {
 
   // Orders & Checkout
   orders: {
-    create: () => request('/orders', { method: 'POST', body: {} }),
+    create: (checkoutData = {}) => request('/orders', { method: 'POST', body: checkoutData }),
     getAll: () => request('/orders'),
     getById: (id) => request(`/orders/${id}`)
   }

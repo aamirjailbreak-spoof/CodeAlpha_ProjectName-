@@ -1,132 +1,211 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useCart } from '../context/CartContext';
+import {
+  XIcon,
+  TrashIcon,
+  PlusIcon,
+  MinusIcon,
+  PackageIcon,
+  ShoppingBagIcon
+} from './Icons';
 
-export default function CartDrawer({ isOpen, onClose, onOrderSuccess }) {
-  const { cart, totalItems, subtotal, updateQuantity, removeItem, checkout, loading, cartError } =
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD'
+});
+
+export default function CartDrawer({ isOpen, onClose, onStartCheckout, onNotify }) {
+  const { cart, totalItems, subtotal, updateQuantity, removeItem, loading, cartError } =
     useCart();
-  const [checkingOut, setCheckingOut] = useState(false);
-  const [checkoutError, setCheckoutError] = useState('');
+
+  // Lock body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => document.body.classList.remove('modal-open');
+  }, [isOpen]);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  async function handleCheckout() {
+  function handleStartCheckout() {
+    onClose();
+    if (onStartCheckout) {
+      onStartCheckout();
+    }
+  }
+
+  async function handleRemove(cartItemId, productName) {
     try {
-      setCheckingOut(true);
-      setCheckoutError('');
-      const order = await checkout();
-      onClose();
-      if (onOrderSuccess) {
-        onOrderSuccess(order);
+      await removeItem(cartItemId);
+      if (onNotify) {
+        onNotify(`Removed ${productName} from bag.`);
       }
     } catch (err) {
-      setCheckoutError(err.message || 'Checkout failed. Please try again.');
-    } finally {
-      setCheckingOut(false);
+      console.error('Failed to remove item:', err);
     }
   }
 
   const items = cart?.items || [];
   const isCartEmpty = items.length === 0;
+  const numSubtotal = Number(subtotal) || 0;
+  const formattedSubtotal = currencyFormatter.format(numSubtotal);
 
   return (
-    <div className="drawer-overlay" onClick={onClose}>
-      <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="drawer-header">
-          <h2>Your Cart ({totalItems})</h2>
-          <button className="close-btn" onClick={onClose} aria-label="Close cart">
-            ✕
+    <div
+      className="editorial-drawer-overlay"
+      onClick={onClose}
+      role="presentation"
+      aria-hidden={!isOpen}
+    >
+      <aside
+        className="editorial-drawer-panel"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Shopping bag"
+      >
+        {/* Drawer Header */}
+        <div className="drawer-header-strip">
+          <div className="drawer-title-wrap">
+            <ShoppingBagIcon size={20} className="drawer-bag-icon" />
+            <h2 className="drawer-heading">Your Shopping Bag</h2>
+            <span className="drawer-count-bracket tabular-nums">
+              ({totalItems} {totalItems === 1 ? 'item' : 'items'})
+            </span>
+          </div>
+          <button
+            type="button"
+            className="drawer-close-action"
+            onClick={onClose}
+            aria-label="Close bag"
+          >
+            <XIcon size={18} />
           </button>
         </div>
 
-        {checkoutError && <div className="drawer-error-banner">{checkoutError}</div>}
-        {cartError && <div className="drawer-error-banner">{cartError}</div>}
+        {/* Error Banners */}
+        {cartError && (
+          <div className="drawer-alert alert-error" role="alert">
+            {cartError}
+          </div>
+        )}
 
-        <div className="drawer-body">
+        {/* Drawer Body */}
+        <div className="drawer-scroll-body">
           {isCartEmpty ? (
-            <div className="cart-empty-state">
-              <span className="cart-empty-icon">🛍️</span>
-              <p>Your shopping cart is empty.</p>
-              <button className="start-shopping-btn" onClick={onClose}>
-                Browse Products
+            <div className="drawer-empty-state">
+              <div className="empty-state-icon-wrap">
+                <ShoppingBagIcon size={40} />
+              </div>
+              <h3 className="empty-state-title">Your Bag is Empty</h3>
+              <p className="empty-state-desc">
+                Fill it with precision electronics, heavyweight apparel, and crafted living objects.
+              </p>
+              <button
+                type="button"
+                className="editorial-button-secondary empty-browse-btn"
+                onClick={onClose}
+              >
+                Explore Collection
               </button>
             </div>
           ) : (
-            <div className="cart-item-list">
+            <div className="drawer-items-list" role="list">
               {items.map((item) => {
                 const isMaxStock = item.product_stock && item.quantity >= item.product_stock;
+                const unitPrice = Number(item.product_price ?? item.price ?? 0);
+                const lineTotal = item.item_total != null ? Number(item.item_total) : (unitPrice * item.quantity);
+
                 return (
-                  <div key={item.id} className="cart-item-row">
-                    <div className="cart-item-thumb">
+                  <div key={item.id} className="drawer-item-entry" role="listitem">
+                    <div className="drawer-item-thumb">
                       {item.product_image_url ? (
                         <img
                           src={item.product_image_url}
                           alt={item.product_name}
+                          className="thumb-image"
                           onError={(e) => {
                             e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
+                            if (e.target.nextSibling) {
+                              e.target.nextSibling.style.display = 'flex';
+                            }
                           }}
                         />
                       ) : null}
                       <div
-                        className="cart-thumb-fallback"
+                        className="thumb-fallback"
                         style={{ display: item.product_image_url ? 'none' : 'flex' }}
+                        aria-hidden="true"
                       >
-                        📦
+                        <PackageIcon size={22} />
                       </div>
                     </div>
 
-                    <div className="cart-item-info">
-                      <h4 className="cart-item-title">{item.product_name}</h4>
-                      <div className="cart-item-price">
-                        ${parseFloat(item.product_price).toFixed(2)} each
+                    <div className="drawer-item-meta">
+                      <div className="item-title-row">
+                        <h4 className="item-title">{item.product_name}</h4>
+                        <button
+                          type="button"
+                          className="item-remove-action"
+                          onClick={() => handleRemove(item.id, item.product_name)}
+                          aria-label={`Remove ${item.product_name}`}
+                          title="Remove item"
+                          disabled={loading}
+                        >
+                          <TrashIcon size={15} />
+                        </button>
                       </div>
-                      {item.product_stock !== undefined && (
-                        <div className="cart-item-stock-hint">
-                          Max available: {item.product_stock}
-                        </div>
-                      )}
 
-                      <div className="cart-item-controls">
-                        <div className="stepper">
+                      <div className="item-unit-price tabular-nums">
+                        {currencyFormatter.format(unitPrice)} each
+                      </div>
+
+                      <div className="item-bottom-row">
+                        <div className="editorial-stepper stepper-sm">
                           <button
-                            className="step-btn"
-                            disabled={loading || checkingOut}
-                            onClick={() => {
-                              if (item.quantity > 1) {
-                                updateQuantity(item.id, item.quantity - 1);
-                              } else {
-                                removeItem(item.id);
-                              }
-                            }}
-                            title={item.quantity === 1 ? 'Remove item' : 'Decrease quantity'}
+                            type="button"
+                            className="stepper-action"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            disabled={loading || item.quantity <= 1}
+                            aria-label={`Decrease quantity of ${item.product_name}`}
                           >
-                            {item.quantity === 1 ? '🗑️' : '−'}
+                            <MinusIcon size={12} />
                           </button>
-                          <span className="step-value">{item.quantity}</span>
+                          <span className="stepper-value tabular-nums">{item.quantity}</span>
                           <button
-                            className="step-btn"
-                            disabled={loading || checkingOut || isMaxStock}
+                            type="button"
+                            className="stepper-action"
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            title={isMaxStock ? 'Max stock reached' : 'Increase quantity'}
+                            disabled={loading || isMaxStock}
+                            aria-label={`Increase quantity of ${item.product_name}`}
+                            title={isMaxStock ? 'Max stock reached' : ''}
                           >
-                            +
+                            <PlusIcon size={12} />
                           </button>
                         </div>
 
-                        <div className="cart-item-total">
-                          ${parseFloat(item.item_total).toFixed(2)}
-                        </div>
+                        <span className="item-line-total tabular-nums">
+                          {currencyFormatter.format(lineTotal)}
+                        </span>
                       </div>
-                    </div>
 
-                    <button
-                      className="remove-btn"
-                      onClick={() => removeItem(item.id)}
-                      disabled={loading || checkingOut}
-                      title="Remove from cart"
-                    >
-                      ✕
-                    </button>
+                      {isMaxStock && (
+                        <span className="item-stock-warning">Max available stock reached</span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -134,23 +213,38 @@ export default function CartDrawer({ isOpen, onClose, onOrderSuccess }) {
           )}
         </div>
 
+        {/* Sticky Checkout Footer */}
         {!isCartEmpty && (
-          <div className="drawer-footer">
-            <div className="subtotal-row">
-              <span className="subtotal-label">Subtotal:</span>
-              <span className="subtotal-value">${parseFloat(subtotal).toFixed(2)}</span>
+          <div className="drawer-footer-strip">
+            <div className="drawer-summary-block">
+              <div className="summary-line">
+                <span>Subtotal</span>
+                <span className="tabular-nums">{formattedSubtotal}</span>
+              </div>
+              <div className="summary-line">
+                <span>Delivery</span>
+                <span className="shipping-complimentary">Calculated at checkout</span>
+              </div>
+              <div className="summary-total-line">
+                <span>Estimated Subtotal</span>
+                <span className="tabular-nums total-val">{formattedSubtotal}</span>
+              </div>
             </div>
-            <p className="tax-shipping-note">Taxes and calculated stock verified at checkout.</p>
+
             <button
-              className="checkout-btn"
-              onClick={handleCheckout}
-              disabled={checkingOut || loading || isCartEmpty}
+              type="button"
+              className="editorial-button-primary drawer-checkout-btn"
+              onClick={handleStartCheckout}
+              disabled={loading || isCartEmpty}
             >
-              {checkingOut ? 'Placing Order...' : 'Place Order Now'}
+              <span>Proceed to Checkout &bull; {formattedSubtotal}</span>
             </button>
+            <p className="drawer-guarantee-note">
+              30-day quality guarantee &bull; Secure SSL encrypted checkout
+            </p>
           </div>
         )}
-      </div>
+      </aside>
     </div>
   );
 }
