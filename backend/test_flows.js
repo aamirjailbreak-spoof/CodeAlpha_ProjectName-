@@ -67,7 +67,7 @@ async function testAll() {
     let cartRes = await fetch(base + '/cart', {
       headers: { 'Authorization': 'Bearer ' + token }
     }).then(r => r.json());
-    console.log(' Cart item count:', cartRes.data?.items?.length, 'Total:', cartRes.data?.total_price);
+    console.log(' Cart item count:', cartRes.data?.items?.length, 'Subtotal:', cartRes.data?.subtotal);
 
     const cartItem = cartRes.data?.items[0];
     if (cartItem) {

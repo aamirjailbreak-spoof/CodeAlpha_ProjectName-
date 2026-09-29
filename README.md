@@ -683,19 +683,18 @@ The application follows secure backend development practices:
 * [x] **Strict Online Payment Terminology**:
   * Without an integrated payment gateway or authorization processor, online orders are accurately designated as `Payment method: Online` with `Payment status: Pending` across all UI modals, API contracts, and tests without misleading pre-auth or capture terminology.
 
-### Phase 9 — Deployment
+### Phase 9 — Deployment & Production Hardening (Completed ✅)
 
-* Deploy frontend
-* Deploy backend
-* Configure production database
-* Configure environment variables
+* [x] **Product Mutation Security**: Protected mutating catalog endpoints (`POST /api/products`, `PUT /api/products/:id`, `DELETE /api/products/:id`) with admin authorization (`x-admin-key`), blocking unauthorized public/customer mutations while keeping all `GET` catalog browsing public.
+* [x] **Environment-Driven CORS Configuration**: Configured backend CORS to bind to `CLIENT_URL` with a secure default fallback to `http://localhost:5173`.
+* [x] **Universal Cloud Database Connectivity**: Enhanced `backend/db.js` to support cloud deployment connection strings via `DATABASE_URL` and configurable SSL (`DB_SSL`), while preserving 100% backward compatibility with local discrete PostgreSQL credentials.
+* [x] **End-to-End Suite Alignment**: Aligned integration tests and verified zero regression across all test suites, database constraints, and production Vite builds.
 
 ### Phase 10 — Documentation
 
-* Update README
-* Add screenshots
-* Add live demo
-* Prepare project explanation video
+* [ ] Finalize documentation
+* [ ] Add live demo link
+* [ ] Prepare project explanation video
 
 ---
 
@@ -739,11 +738,18 @@ Create a `.env` file inside the `backend` directory (refer to `backend/.env.exam
 
 ```env
 PORT=5000
+CLIENT_URL=http://localhost:5173
+ADMIN_API_KEY=your_secure_admin_api_key
+
+# Database (Discrete credentials or optional DATABASE_URL)
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=codealpha_ecommerce
 DB_USER=postgres
 DB_PASSWORD=your_postgresql_password
+# DATABASE_URL=postgres://user:password@localhost:5432/codealpha_ecommerce
+# DB_SSL=false
+
 JWT_SECRET=your_secure_jwt_secret
 JWT_EXPIRES_IN=1d
 ```

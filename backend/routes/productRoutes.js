@@ -8,10 +8,25 @@ const {
   deleteProduct
 } = require('../controllers/productController');
 
+function requireAdmin(req, res, next) {
+  const adminKey = req.headers['x-admin-key'];
+  if (process.env.ADMIN_API_KEY && adminKey === process.env.ADMIN_API_KEY) {
+    return next();
+  }
+  return res.status(403).json({
+    success: false,
+    message: 'Access denied: Admin authorization required'
+  });
+}
+
+// Public catalog browsing
 router.get('/', getAllProducts);
 router.get('/:id', getProductById);
-router.post('/', createProduct);
-router.put('/:id', updateProduct);
-router.delete('/:id', deleteProduct);
+
+// Admin-only catalog mutations (blocked for ordinary public/customers)
+router.post('/', requireAdmin, createProduct);
+router.put('/:id', requireAdmin, updateProduct);
+router.delete('/:id', requireAdmin, deleteProduct);
 
 module.exports = router;
+

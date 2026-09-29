@@ -15,7 +15,11 @@ const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
-app.use(cors());
+const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(cors({
+  origin: allowedOrigin,
+  credentials: true
+}));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/api/health', (req, res) => {
