@@ -5,7 +5,11 @@
  * and standardized error handling.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '/api').trim();
+const sanitizedUrl = rawApiUrl.replace(/\/+$/, '');
+const API_BASE_URL = (sanitizedUrl.startsWith('http://') || sanitizedUrl.startsWith('https://')) && !sanitizedUrl.endsWith('/api')
+  ? `${sanitizedUrl}/api`
+  : sanitizedUrl;
 
 export class ApiError extends Error {
   constructor(message, status, data) {
@@ -17,7 +21,8 @@ export class ApiError extends Error {
 }
 
 async function request(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${formattedEndpoint}`;
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})
@@ -40,7 +45,8 @@ async function request(endpoint, options = {}) {
   let res;
   try {
     res = await fetch(url, config);
-  } catch {
+  } catch (err) {
+    console.error(`[API Error] Request failed to ${url}:`, err);
     throw new ApiError('Unable to connect to the server. Please ensure the backend is running.', 0);
   }
 

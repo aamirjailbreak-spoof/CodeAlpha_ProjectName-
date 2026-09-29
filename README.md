@@ -734,6 +734,7 @@ npm install
 
 ### Environment Variables
 
+#### Backend Environment (`backend/.env`)
 Create a `.env` file inside the `backend` directory (refer to `backend/.env.example`):
 
 ```env
@@ -754,7 +755,27 @@ JWT_SECRET=your_secure_jwt_secret
 JWT_EXPIRES_IN=1d
 ```
 
-Never commit the `.env` file to GitHub.
+#### Frontend Environment (`frontend/.env`)
+Create a `.env` file inside the `frontend` directory (refer to `frontend/.env.example`):
+
+```env
+# API Base URL (defaults to /api routed by Vite dev proxy in local development)
+VITE_API_URL=/api
+```
+
+Never commit `.env` files to GitHub.
+
+#### Vercel Production Environment Variables
+When deploying both services to Vercel:
+
+| Project | Variable | Value | Description |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | `VITE_API_URL` | `https://code-alpha-project-name-qdg1-blond.vercel.app/api` | Full URL including `/api` to the deployed backend |
+| **Backend** | `CLIENT_URL` | `https://code-alpha-project-name-blush.vercel.app` | Allowed CORS frontend origin (must include `https://`) |
+| **Backend** | `DATABASE_URL` | `postgresql://...` | Neon PostgreSQL pooled connection string with SSL |
+| **Backend** | `JWT_SECRET` | *(secure 32+ char secret)* | Secret used to sign and verify user JWT tokens |
+| **Backend** | `JWT_EXPIRES_IN` | `1d` | Token expiration duration |
+| **Backend** | `ADMIN_API_KEY` | *(secure random key)* | Key required for admin category & catalog modifications |
 
 ### Initialize Database Schema
 
@@ -769,7 +790,7 @@ psql -U postgres -d codealpha_ecommerce -f database/schema.sql
 
 ## 🧪 Testing
 
-API testing will be performed using **Postman**.
+API testing will be performed using **Postman** and automated test suites (`backend/test_flows.js`, `backend/test_checkout_comprehensive.js`).
 
 The application will be tested for:
 
@@ -787,7 +808,9 @@ The application will be tested for:
 
 ## 🌐 Live Demo
 
-**Coming soon**
+* **Frontend (Storefront UI)**: [https://code-alpha-project-name-blush.vercel.app](https://code-alpha-project-name-blush.vercel.app)
+* **Backend (API Service)**: [https://code-alpha-project-name-qdg1-blond.vercel.app/api/health](https://code-alpha-project-name-qdg1-blond.vercel.app/api/health)
+
 
 ---
 

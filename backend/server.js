@@ -15,9 +15,33 @@ const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
-const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://code-alpha-project-name-blush.vercel.app'
+];
+
+const parseClientUrls = (val) => {
+  if (!val) return [];
+  return val
+    .split(',')
+    .map(url => url.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
+    .flatMap(url => {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        return [`https://${url}`, `http://${url}`, url];
+      }
+      return [url];
+    });
+};
+
+const allowedOrigins = Array.from(new Set([
+  ...defaultOrigins,
+  ...parseClientUrls(process.env.CLIENT_URL)
+]));
+
 app.use(cors({
-  origin: allowedOrigin,
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json({ limit: '100kb' }));
