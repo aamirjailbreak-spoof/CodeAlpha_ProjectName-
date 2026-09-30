@@ -2,11 +2,13 @@ const { Pool } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
-const poolConfig = process.env.DATABASE_URL
+const rawDatabaseUrl = (process.env.DATABASE_URL || '').trim().replace(/^["']|["']$/g, '');
+
+const poolConfig = rawDatabaseUrl
   ? {
-      connectionString: process.env.DATABASE_URL,
+      connectionString: rawDatabaseUrl,
       ssl:
-        process.env.DB_SSL === 'true' || process.env.DATABASE_URL.includes('sslmode=require')
+        process.env.DB_SSL === 'true' || rawDatabaseUrl.includes('sslmode=require')
           ? { rejectUnauthorized: false }
           : false
     }

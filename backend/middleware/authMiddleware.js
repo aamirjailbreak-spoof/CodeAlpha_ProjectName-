@@ -24,7 +24,8 @@ function authMiddleware(req, res, next) {
   }
 
   const token = parts[1];
-  const secret = process.env.JWT_SECRET;
+  const rawSecret = (process.env.JWT_SECRET || '').toString().trim().replace(/^["']|["']$/g, '');
+  const secret = rawSecret || process.env.JWT_SECRET;
 
   if (!secret) {
     console.error('JWT_SECRET is not configured in environment variables');

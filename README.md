@@ -774,8 +774,11 @@ When deploying both services to Vercel:
 | **Backend** | `CLIENT_URL` | `https://code-alpha-project-name-blush.vercel.app` | Allowed CORS frontend origin (must include `https://`) |
 | **Backend** | `DATABASE_URL` | `postgresql://...` | Neon PostgreSQL pooled connection string with SSL |
 | **Backend** | `JWT_SECRET` | *(secure 32+ char secret)* | Secret used to sign and verify user JWT tokens |
-| **Backend** | `JWT_EXPIRES_IN` | `1d` | Token expiration duration |
+| **Backend** | `JWT_EXPIRES_IN` | `1d` | Token expiration duration (raw string without quotes, e.g. `1d` or `24h`) |
 | **Backend** | `ADMIN_API_KEY` | *(secure random key)* | Key required for admin category & catalog modifications |
+
+> [!TIP]
+> **Environment Formatting Resilience**: The backend automatically sanitizes wrapping quotation marks and trailing whitespace from `JWT_EXPIRES_IN`, `JWT_SECRET`, and `DATABASE_URL` with a defensive fallback to `1d` if an invalid timespan string is supplied, ensuring seamless token generation on Vercel serverless environments. Additionally, `POST /api/auth/register` returns an authenticated `token` and `user` payload directly for instant, single-roundtrip client login.
 
 ### Initialize Database Schema & Curated Product Images
 

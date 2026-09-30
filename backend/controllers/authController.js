@@ -86,9 +86,42 @@ async function register(req, res, next) {
 
     const newUser = insertResult.rows[0];
 
+    // Generate signed JWT token upon registration to enable seamless client authentication
+    let token = null;
+    const rawSecret = (process.env.JWT_SECRET || '').toString().trim().replace(/^["']|["']$/g, '');
+    const secret = rawSecret || process.env.JWT_SECRET;
+    if (secret) {
+      const rawExpiresIn = (process.env.JWT_EXPIRES_IN || '1d').toString().trim().replace(/^["']|["']$/g, '');
+      const expiresIn = rawExpiresIn || '1d';
+      try {
+        token = jwt.sign(
+          { userId: newUser.id },
+          secret,
+          { expiresIn }
+        );
+      } catch (signErr) {
+        console.warn('JWT sign with configured expiresIn failed on register, falling back to 1d:', signErr.message);
+        try {
+          token = jwt.sign(
+            { userId: newUser.id },
+            secret,
+            { expiresIn: '1d' }
+          );
+        } catch {
+          token = null;
+        }
+      }
+    }
+
     return res.status(201).json({
       success: true,
       message: 'User registered successfully',
+      token,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email
+      },
       data: {
         id: newUser.id,
         name: newUser.name,
@@ -151,7 +184,8 @@ async function login(req, res, next) {
       });
     }
 
-    const secret = process.env.JWT_SECRET;
+    const rawSecret = (process.env.JWT_SECRET || '').toString().trim().replace(/^["']|["']$/g, '');
+    const secret = rawSecret || process.env.JWT_SECRET;
     if (!secret) {
       console.error('JWT_SECRET is not configured in environment variables');
       return res.status(500).json({
@@ -160,14 +194,25 @@ async function login(req, res, next) {
       });
     }
 
-    const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
+    const rawExpiresIn = (process.env.JWT_EXPIRES_IN || '1d').toString().trim().replace(/^["']|["']$/g, '');
+    const expiresIn = rawExpiresIn || '1d';
 
-    // Sign minimal JWT payload
-    const token = jwt.sign(
-      { userId: user.id },
-      secret,
-      { expiresIn }
-    );
+    // Sign minimal JWT payload with defensive fallback for Vercel env formatting
+    let token;
+    try {
+      token = jwt.sign(
+        { userId: user.id },
+        secret,
+        { expiresIn }
+      );
+    } catch (signErr) {
+      console.warn('JWT sign with configured expiresIn failed, falling back to 1d:', signErr.message);
+      token = jwt.sign(
+        { userId: user.id },
+        secret,
+        { expiresIn: '1d' }
+      );
+    }
 
     return res.status(200).json({
       success: true,

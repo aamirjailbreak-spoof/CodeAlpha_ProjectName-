@@ -60,8 +60,20 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (name, email, password) => {
     // 1. Register user
-    await api.auth.register({ name, email, password });
-    // 2. Automatically log in to obtain JWT
+    const res = await api.auth.register({ name, email, password });
+    if (res && res.token && (res.user || res.data)) {
+      const authUser = res.user || {
+        id: res.data.id,
+        name: res.data.name,
+        email: res.data.email
+      };
+      localStorage.setItem('authToken', res.token);
+      localStorage.setItem('authUser', JSON.stringify(authUser));
+      setToken(res.token);
+      setUser(authUser);
+      return authUser;
+    }
+    // 2. Automatically log in to obtain JWT if not returned directly by register
     return await login(email, password);
   }, [login]);
 
