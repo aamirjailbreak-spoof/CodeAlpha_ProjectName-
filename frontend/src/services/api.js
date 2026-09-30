@@ -65,7 +65,45 @@ async function request(endpoint, options = {}) {
     throw new ApiError(message, res.status, data);
   }
 
-  return data;
+  const IMAGE_REPLACEMENTS = [
+    {
+      match: (name, url) => (url && (url.includes('1542272604-780c96856592') || url.includes('1541099649105-f69ad21f3246'))) || (name && name.toLowerCase().includes('denim')),
+      target: '/images/selvedge_denim_trouser.png'
+    },
+    {
+      match: (name, url) => (url && url.includes('1521572267360-ee0c2909d518')) || (name && name.toLowerCase().includes('cotton t-shirt')),
+      target: '/images/classic_cotton_tshirt.png'
+    },
+    {
+      match: (name, url) => (url && url.includes('1584100936595-c0654b55a2e2')) || (name && name.toLowerCase().includes('blanket')),
+      target: '/images/wool_boucle_blanket.png'
+    }
+  ];
+
+  function sanitizeImageUrls(val) {
+    if (!val || typeof val !== 'object') return val;
+    if (Array.isArray(val)) {
+      return val.map(sanitizeImageUrls);
+    }
+    const name = val.name || val.product_name;
+    for (const { match, target } of IMAGE_REPLACEMENTS) {
+      if (val.image_url && match(name, val.image_url)) {
+        val.image_url = target;
+      }
+      if (val.product_image_url && match(name, val.product_image_url)) {
+        val.product_image_url = target;
+      }
+    }
+    if (val.data) {
+      val.data = sanitizeImageUrls(val.data);
+    }
+    if (val.items) {
+      val.items = sanitizeImageUrls(val.items);
+    }
+    return val;
+  }
+
+  return sanitizeImageUrls(data);
 }
 
 export const api = {

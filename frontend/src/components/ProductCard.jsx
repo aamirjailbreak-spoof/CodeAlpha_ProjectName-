@@ -103,6 +103,18 @@ export default function ProductCard({ product, onRequireAuth, onQuickView, onNot
             className="card-product-image"
             loading="lazy"
             onError={(e) => {
+              if (product.name?.toLowerCase().includes('denim') && !e.target.src.includes('selvedge_denim_trouser.png')) {
+                e.target.src = '/images/selvedge_denim_trouser.png';
+                return;
+              }
+              if (product.name?.toLowerCase().includes('t-shirt') && !e.target.src.includes('classic_cotton_tshirt.png')) {
+                e.target.src = '/images/classic_cotton_tshirt.png';
+                return;
+              }
+              if (product.name?.toLowerCase().includes('blanket') && !e.target.src.includes('wool_boucle_blanket.png')) {
+                e.target.src = '/images/wool_boucle_blanket.png';
+                return;
+              }
               e.target.style.display = 'none';
               if (e.target.nextSibling) {
                 e.target.nextSibling.style.display = 'flex';

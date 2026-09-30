@@ -85,7 +85,7 @@ async function seedCuratedCatalog() {
       description: '240 GSM organic ring-spun cotton tee with bound rib collar, preshrunk jersey knit, and straight relaxed silhouette.',
       price: 38.00,
       stock: 55,
-      image: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=800&q=80'
+      image: '/images/classic_cotton_tshirt.png'
     },
     {
       category: 'Apparel',
@@ -101,7 +101,7 @@ async function seedCuratedCatalog() {
       description: '14.5oz unwashed raw indigo denim woven on vintage shuttle looms in Okayama. Finished with copper hardware.',
       price: 175.00,
       stock: 16,
-      image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=80'
+      image: '/images/selvedge_denim_trouser.png'
     },
     {
       category: 'Apparel',
@@ -201,7 +201,7 @@ async function seedCuratedCatalog() {
       description: 'Woven from 100% pure virgin wool in a textural bouclé weave with rolled fringe detailing. Size: 130x180cm.',
       price: 135.00,
       stock: 14,
-      image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=800&q=80'
+      image: '/images/wool_boucle_blanket.png'
     },
     {
       category: 'Living & Objects',

@@ -777,13 +777,22 @@ When deploying both services to Vercel:
 | **Backend** | `JWT_EXPIRES_IN` | `1d` | Token expiration duration |
 | **Backend** | `ADMIN_API_KEY` | *(secure random key)* | Key required for admin category & catalog modifications |
 
-### Initialize Database Schema
+### Initialize Database Schema & Curated Product Images
 
 Apply the database schema and initial seed data using `psql` or PostgreSQL client:
 
 ```bash
 psql -U postgres -d codealpha_ecommerce -f database/schema.sql
 ```
+
+Alternatively, run the Node seed scripts:
+```bash
+node database/seed_catalog.js
+# or for a clean reset of the 24 curated products:
+node database/seed_curated_catalog.js
+```
+
+Static product images are managed locally under `frontend/public/images/` for fast, zero-dependency, and case-sensitive delivery in both local development and Vercel production edge deployments.
 
 
 ---

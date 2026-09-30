@@ -74,7 +74,7 @@ async function seed() {
       description: '220 GSM heavyweight combed organic cotton t-shirt with a relaxed cut and blind-stitched hem.',
       price: 36.00,
       stock: 65,
-      image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80'
+      image: '/images/classic_cotton_tshirt.png'
     },
     {
       category: 'Apparel',
@@ -82,7 +82,7 @@ async function seed() {
       description: '450 GSM loopback cotton fleece pullover with double-layer hood, rib-knit side gussets, and kangaroo pocket.',
       price: 110.00,
       stock: 28,
-      image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80'
+      image: '/images/french_terry_hoodie.png'
     },
     {
       category: 'Apparel',
@@ -90,7 +90,7 @@ async function seed() {
       description: '14oz shuttle-loomed Japanese selvedge denim in an unwashed indigo rinse with copper hardware and chainstitched hems.',
       price: 165.00,
       stock: 18,
-      image: 'https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=800&q=80'
+      image: '/images/selvedge_denim_trouser.png'
     },
     {
       category: 'Apparel',
@@ -122,7 +122,7 @@ async function seed() {
       description: 'Structured wool-cashmere blend overcoat tailored with peak lapels, interior welt pockets, and viscose lining.',
       price: 340.00,
       stock: 9,
-      image: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=800&q=80'
+      image: '/images/tailored_overcoat.png'
     },
     {
       category: 'Footwear & Leather',
@@ -146,7 +146,7 @@ async function seed() {
       description: 'Weather-resistant waxed roughout suede with Goodyear-welted construction and oil-resistant rubber lug soles.',
       price: 240.00,
       stock: 12,
-      image: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?auto=format&fit=crop&w=800&q=80'
+      image: '/images/chelsea_boots.png'
     },
     {
       category: 'Footwear & Leather',
@@ -162,7 +162,7 @@ async function seed() {
       description: 'Ultra-slim profile card case cut from natural bridle leather. Holds up to 6 cards with quick thumb access.',
       price: 38.00,
       stock: 50,
-      image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80'
+      image: '/images/leather_cardholder.png'
     },
     {
       category: 'Living & Objects',
@@ -170,7 +170,7 @@ async function seed() {
       description: 'Matte stoneware dripper and 600ml glass carafe designed for uniform thermal stability and balanced extraction.',
       price: 46.00,
       stock: 32,
-      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80'
+      image: '/images/ceramic_pour_over.jpg'
     },
     {
       category: 'Living & Objects',
@@ -186,7 +186,7 @@ async function seed() {
       description: 'Plush virgin wool woven in a textural bouclé weave. Finished with rolled fringe edges and natural warmth.',
       price: 125.00,
       stock: 14,
-      image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=800&q=80'
+      image: '/images/wool_boucle_blanket.png'
     },
     {
       category: 'Living & Objects',
